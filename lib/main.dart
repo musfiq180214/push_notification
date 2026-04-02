@@ -37,4 +37,5 @@ class MyApp extends StatelessWidget {
 
 /*
 Go to Firebase Console: Project Shortcut: Messaging: Create Campaign , Compose Notification: Input title and text, Hit Send test message
+This will send notification even if app is terminated
  */
