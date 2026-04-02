@@ -45,7 +45,9 @@ run this in base terminal:
 gcloud auth application-default print-access-token
 you get a token
 Go to PostMan:
-Create Post Method: IN Authorization: Bearer Token: input the token
+Create Post Method: IN Authorization: Bearer Token: input the gcloud access token
+
+
 In Body give this json:
 {
   "message": {
