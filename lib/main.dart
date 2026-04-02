@@ -45,7 +45,9 @@ run this in base terminal:
 gcloud auth application-default print-access-token
 you get a gcloud access token
 Go to PostMan:
-Create Post Method: IN Authorization: Bearer Token: input the gcloud access token
+Create Post Method: https://fcm.googleapis.com/v1/projects/pushnotification-e343e/messages:send
+
+IN Authorization: Bearer Token: input the gcloud access token
 In Body give this json:
 {
   "message": {
