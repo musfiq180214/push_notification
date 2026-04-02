@@ -43,15 +43,13 @@ This will send notification even if app is terminated
 /*
 run this in base terminal:
 gcloud auth application-default print-access-token
-you get a token
+you get a gcloud access token
 Go to PostMan:
 Create Post Method: IN Authorization: Bearer Token: input the gcloud access token
-
-
 In Body give this json:
 {
   "message": {
-    "token": "cetxhxUWRM6aw7vM0xJeTl:APA91bE6UeQ38aNg9H574F6zTkqWofnoTgncr7ZA4daIAzvB-vFSslFZ5dIQFPCZYLHy_l6D0aFMnCH9U3QJRyRCrx-I0Y49JMXgqtTy2VvMzDtH_jbJH4g",
+    "token": fcm token found in terminal,
     "notification": {
       "title": "Postman Test 100",
       "body": "This was sent via the REST API!"
