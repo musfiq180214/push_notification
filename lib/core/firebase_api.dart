@@ -1,44 +1,56 @@
-
-import 'package:push_notification/core/utils/logger.dart';
-import 'package:push_notification/main.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:hive/hive.dart';
+import '../main.dart';
+
 class FirebaseApi {
-  // create instance of Firebase Messeging
-
-  final _firebaseMesseging = FirebaseMessaging.instance;
-
-  // function to initialize notifactions
+  final _firebaseMessaging = FirebaseMessaging.instance;
 
   Future<void> initNotification() async {
-    await _firebaseMesseging.requestPermission();
+    await _firebaseMessaging.requestPermission();
 
-    final fcmToken = await _firebaseMesseging.getToken();
+    final token = await _firebaseMessaging.getToken();
+    print("FCM Token: $token");
 
-    AppLogger.i("Token: $fcmToken");
-
-    initPushNotification();
+    _setupListeners();
   }
 
+  void _saveToHive(RemoteMessage message) {
+    final box = Hive.box('notifications_box');
 
+    final newNotification = {
+      "title": message.notification?.title ?? "No Title",
+      "body": message.notification?.body ?? "No Body",
+      "timestamp": DateTime.now().toIso8601String(),
+      "data": message.data,
+    };
 
-  // function to handle received messeges
-  void handleMessege(RemoteMessage? message) {
-    if (message == null) return;  // Now that we've checked for null, message is promoted to non-nullable
-    navigatorKey.currentState?.pushNamed(
-      '/notification_screen',
-      arguments: message,
-    );
+    bool exists = box.values.any((n) =>
+    n['title'] == newNotification['title'] &&
+        n['body'] == newNotification['body']);
+
+    if (!exists) {
+      box.add(newNotification);
+    }
   }
 
+  void handleMessage(RemoteMessage? message) {
+    if (message == null) return;
 
+    _saveToHive(message);
 
-  // function to initialize foreground and background settings
+    final screen = message.data['screen'];
 
-  Future<void> initPushNotification() async {
-    // handle when app was terminated, notification came and app opened
+    if (screen == 'notification_screen') {
+      navigatorKey.currentState?.pushNamed('/notification_screen');
+    }
+  }
+  void _setupListeners() {
+    // 🔥 Foreground
+    FirebaseMessaging.onMessage.listen((message) {
+      _saveToHive(message);
+    });
 
-    FirebaseMessaging.instance.getInitialMessage().then(handleMessege);
-
-    FirebaseMessaging.onMessageOpenedApp.listen(handleMessege);
+    // 🔥 Background (app opened from notification)
+    FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
   }
 }

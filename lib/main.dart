@@ -4,31 +4,68 @@ import 'package:push_notification/features/notifications/presentation/notificati
 import 'package:push_notification/firebase_options.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
+RemoteMessage? initialMessage;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize notifications
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // ✅ INIT HIVE FIRST (VERY IMPORTANT)
+  await Hive.initFlutter();
+  await Hive.openBox('notifications_box');
+
+  // ✅ GET TERMINATED MESSAGE
+  initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+
+  // ✅ INIT FCM AFTER HIVE
   await FirebaseApi().initNotification();
 
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+
+  @override
+  void initState() {
+    super.initState();
+
+    _handleInitialMessage();
+  }
+
+  void _handleInitialMessage() async {
+    if (initialMessage != null) {
+      // ✅ SAVE TO HIVE
+      FirebaseApi().handleMessage(initialMessage);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      navigatorKey.currentState?.pushNamed('/notification_screen');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Push Notification',
       debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey, // Required for background navigation
+      navigatorKey: navigatorKey,
       home: const HomeScreen(),
       routes: {
-        // ADDED THE LEADING SLASH HERE TO MATCH firebase_api.dart
         '/notification_screen': (context) => const NotificationScreen(),
       },
     );
@@ -65,4 +102,10 @@ In Body give this json:
 }
 
 Notification will be sent to this app
+
+and if clicked Notification Screen will be opened even if the app is closed
+
+We are saving the notifications in Hive and shown in Notification Screen
+
+We have setup to handle three situation notification: foreground, background and terminated
  */
