@@ -6,6 +6,35 @@ import 'features/home/presentation/home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:path_provider/path_provider.dart';
+
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  final dir = await getApplicationDocumentsDirectory();
+  Hive.init(dir.path);
+
+  final box = await Hive.openBox('notifications_box');
+
+  final newNotification = {
+    "title": message.notification?.title ?? message.data['title'] ?? "No Title",
+    "body": message.notification?.body ?? message.data['body'] ?? "No Body",
+    "timestamp": DateTime.now().toIso8601String(),
+    "data": message.data,
+  };
+
+  bool exists = box.values.any((n) =>
+  n['title'] == newNotification['title'] &&
+      n['body'] == newNotification['body']);
+
+  if (!exists) {
+    box.add(newNotification);
+  }
+}
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -18,6 +47,9 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+
   // ✅ INIT HIVE FIRST (VERY IMPORTANT)
   await Hive.initFlutter();
   await Hive.openBox('notifications_box');
@@ -27,6 +59,7 @@ void main() async {
 
   // ✅ INIT FCM AFTER HIVE
   await FirebaseApi().initNotification();
+
 
   runApp(const MyApp());
 }
