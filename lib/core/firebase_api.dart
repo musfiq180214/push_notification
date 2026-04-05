@@ -22,6 +22,7 @@ class FirebaseApi {
       "body": message.notification?.body ?? "No Body",
       "timestamp": DateTime.now().toIso8601String(),
       "data": message.data,
+      "isRead": false
     };
 
     bool exists = box.values.any((n) =>

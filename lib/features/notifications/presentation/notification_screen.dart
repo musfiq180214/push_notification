@@ -12,12 +12,24 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   late Box notificationBox;
 
+  // mark all as read when the screen is opened
+  void _markAllAsRead() {
+    final box = Hive.box('notifications_box');
+    for (int i = 0; i < box.length; i++) {
+      final item = box.getAt(i);
+      if (item['isRead'] == false) {
+        item['isRead'] = true;
+        box.putAt(i, item); // Update the entry
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     notificationBox = Hive.box('notifications_box');
+    _markAllAsRead(); // ✅ Clear the "unread" status
   }
-
 
 
   @override

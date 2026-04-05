@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../notifications/presentation/notification_screen.dart'; // Ensure this path is correct
+import 'package:hive_flutter/hive_flutter.dart';
 
+// Inside HomeScreen AppBar actions:
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -17,24 +19,27 @@ class HomeScreen extends StatelessWidget {
         // Professional apps usually left-align titles
         backgroundColor: Colors.white,
         elevation: 0.5,
-        actions: [
-          // 1. The Notification Connection
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(
-                    Icons.notifications_none_outlined, color: Colors.black87),
-                onPressed: () {
-                  // Navigate to Notification Inbox
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NotificationScreen(),
-                    ),
-                  );
-                },
-              ),
-              // 2. Optional: Red Dot indicator for "New" messages
+
+      actions: [
+      ValueListenableBuilder(
+      valueListenable: Hive.box('notifications_box').listenable(),
+      builder: (context, Box box, _) {
+        // Calculate count of unread notifications
+        final unreadCount = box.values.where((item) => item['isRead'] == false).length;
+
+        return Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_none_outlined, color: Colors.black87),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                );
+              },
+            ),
+            // Only show the Red Dot if unreadCount > 0
+            if (unreadCount > 0)
               Positioned(
                 right: 8,
                 top: 8,
@@ -42,18 +47,25 @@ class HomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     color: Colors.red,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   constraints: const BoxConstraints(
-                    minWidth: 12,
-                    minHeight: 12,
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '$unreadCount',
+                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               )
-            ],
-          ),
-          const SizedBox(width: 8),
-        ],
+          ],
+        );
+      },
+    ),
+    const SizedBox(width: 8),
+    ],
       ),
       body: const Center(
         child: Column(
