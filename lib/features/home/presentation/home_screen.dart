@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../notifications/presentation/notification_screen.dart'; // Ensure this path is correct
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../notifications/presentation/notification_screen.dart';
 
-// Inside HomeScreen AppBar actions:
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final firestore = FirebaseFirestore.instance;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -15,57 +16,79 @@ class HomeScreen extends StatelessWidget {
           'Push Notification Home',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
-        centerTitle: false,
-        // Professional apps usually left-align titles
         backgroundColor: Colors.white,
         elevation: 0.5,
+        // Remove the automatic back button if we are coming back from NotificationScreen
+        automaticallyImplyLeading: false,
+        actions: [
+          StreamBuilder<QuerySnapshot>(
+            stream: firestore
+                .collection('notifications')
+                .where('isRead', isEqualTo: false)
+                .snapshots(),
+            builder: (context, snapshot) {
+              final unreadCount = snapshot.data?.docs.length ?? 0;
 
-      actions: [
-      ValueListenableBuilder(
-      valueListenable: Hive.box('notifications_box').listenable(),
-      builder: (context, Box box, _) {
-        // Calculate count of unread notifications
-        final unreadCount = box.values.where((item) => item['isRead'] == false).length;
-
-        return Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none_outlined, color: Colors.black87),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const NotificationScreen()),
-                );
-              },
-            ),
-            // Only show the Red Dot if unreadCount > 0
-            if (unreadCount > 0)
-              Positioned(
-                right: 8,
-                top: 8,
+              return InkWell( // Changed to InkWell for a better visual feedback (ripple)
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationScreen(),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 16,
-                    minHeight: 16,
-                  ),
-                  child: Text(
-                    '$unreadCount',
-                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+                  // Increase width to prevent clipping and give the badge room
+                  width: 55,
+                  alignment: Alignment.center,
+                  child: Stack(
+                    clipBehavior: Clip.none, // Ensures the badge isn't cut off
+                    children: [
+                      const Icon(
+                        Icons.notifications_none_outlined,
+                        color: Colors.black87,
+                        size: 28,
+                      ),
+                      // 🔴 Badge
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: -2,
+                          // Adjusted to sit on the shoulder of the icon
+                          top: -2,
+                          // Adjusted to sit higher up
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: Colors.white, width: 1.5),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 18,
+                              minHeight: 18,
+                            ),
+                            child: Text(
+                              '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                    ],
                   ),
                 ),
-              )
-          ],
-        );
-      },
-    ),
-    const SizedBox(width: 8),
-    ],
+              );
+            },
+          ),
+          const SizedBox(width: 12), // Added more spacing from the screen edge
+        ],
       ),
       body: const Center(
         child: Column(

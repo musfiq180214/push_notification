@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:hive/hive.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../main.dart';
 
 class FirebaseApi {
@@ -14,44 +15,47 @@ class FirebaseApi {
     _setupListeners();
   }
 
-  void _saveToHive(RemoteMessage message) {
-    final box = Hive.box('notifications_box');
+  // 🔥 COMMON SAVE FUNCTION (USED EVERYWHERE)
+  Future<void> saveToFirestore(RemoteMessage message) async {
+    final firestore = FirebaseFirestore.instance;
+
+    final messageId = message.messageId;
+
+    // ✅ Prevent duplicate using messageId
+    final existing = await firestore
+        .collection('notifications')
+        .where('messageId', isEqualTo: messageId)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      print("⚠️ Duplicate skipped");
+      return;
+    }
 
     final newNotification = {
-      "title": message.notification?.title ?? "No Title",
-      "body": message.notification?.body ?? "No Body",
-      "timestamp": DateTime.now().toIso8601String(),
+      "messageId": messageId,
+      "title": message.notification?.title ?? message.data['title'] ?? "No Title",
+      "body": message.notification?.body ?? message.data['body'] ?? "No Body",
+      "timestamp": FieldValue.serverTimestamp(),
       "data": message.data,
       "isRead": false
     };
 
-    bool exists = box.values.any((n) =>
-    n['title'] == newNotification['title'] &&
-        n['body'] == newNotification['body']);
-
-    if (!exists) {
-      box.add(newNotification);
-    }
+    await firestore.collection('notifications').add(newNotification);
   }
 
-  void handleMessage(RemoteMessage? message) {
-    if (message == null) return;
-
-    _saveToHive(message);
-
-    final screen = message.data['screen'];
-
-    if (screen == 'notification_screen') {
-      navigatorKey.currentState?.pushNamed('/notification_screen');
-    }
-  }
   void _setupListeners() {
-    // 🔥 Foreground
+    // ✅ Foreground
     FirebaseMessaging.onMessage.listen((message) {
-      _saveToHive(message);
+      saveToFirestore(message);
     });
 
-    // 🔥 Background (app opened from notification)
-    FirebaseMessaging.onMessageOpenedApp.listen(handleMessage);
+    // ✅ Background click
+    FirebaseMessaging.onMessageOpenedApp.listen((message) async {
+      await saveToFirestore(message);
+
+      // 🔥 THIS IS WHAT YOU ARE MISSING
+      navigatorKey.currentState?.pushNamed('/notification_screen');
+    });
   }
 }

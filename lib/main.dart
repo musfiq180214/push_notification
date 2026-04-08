@@ -4,37 +4,18 @@ import 'package:push_notification/features/notifications/presentation/notificati
 import 'package:push_notification/firebase_options.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:path_provider/path_provider.dart';
 
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp();
 
-  final dir = await getApplicationDocumentsDirectory();
-  Hive.init(dir.path);
-
-  final box = await Hive.openBox('notifications_box');
-
-  final newNotification = {
-    "title": message.notification?.title ?? message.data['title'] ?? "No Title",
-    "body": message.notification?.body ?? message.data['body'] ?? "No Body",
-    "timestamp": DateTime.now().toIso8601String(),
-    "data": message.data,
-    "isRead": false
-  };
-
-  bool exists = box.values.any((n) =>
-  n['title'] == newNotification['title'] &&
-      n['body'] == newNotification['body']);
-
-  if (!exists) {
-    box.add(newNotification);
-  }
+  // 🔥 Reuse same logic
+  await FirebaseApi().saveToFirestore(message);
 }
 
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -50,10 +31,6 @@ void main() async {
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-
-  // ✅ INIT HIVE FIRST (VERY IMPORTANT)
-  await Hive.initFlutter();
-  await Hive.openBox('notifications_box');
 
   // ✅ GET TERMINATED MESSAGE
   initialMessage = await FirebaseMessaging.instance.getInitialMessage();
@@ -83,10 +60,10 @@ class _MyAppState extends State<MyApp> {
 
   void _handleInitialMessage() async {
     if (initialMessage != null) {
-      // ✅ SAVE TO HIVE
-      FirebaseApi().handleMessage(initialMessage);
+      // ✅ SAVE TO FIRESTORE (NOT Hive, NOT handleMessage)
+      await FirebaseApi().saveToFirestore(initialMessage!);
 
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(seconds: 1));
 
       navigatorKey.currentState?.pushNamed('/notification_screen');
     }

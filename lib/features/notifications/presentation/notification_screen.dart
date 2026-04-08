@@ -1,42 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class NotificationScreen extends StatefulWidget {
+import '../../home/presentation/home_screen.dart';
+
+class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
 
   @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
-}
-
-class _NotificationScreenState extends State<NotificationScreen> {
-  late Box notificationBox;
-
-  // mark all as read when the screen is opened
-  void _markAllAsRead() {
-    final box = Hive.box('notifications_box');
-    for (int i = 0; i < box.length; i++) {
-      final item = box.getAt(i);
-      if (item['isRead'] == false) {
-        item['isRead'] = true;
-        box.putAt(i, item); // Update the entry
-      }
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    notificationBox = Hive.box('notifications_box');
-    _markAllAsRead(); // ✅ Clear the "unread" status
-  }
-
-
-  @override
   Widget build(BuildContext context) {
+    final firestore = FirebaseFirestore.instance;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  (route) => false, // This removes all previous routes from the stack
+            );
+          },
+        ),
         title: const Text(
           'Notifications',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
@@ -47,51 +33,48 @@ class _NotificationScreenState extends State<NotificationScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep, color: Colors.red),
-            onPressed: () => notificationBox.clear(),
+            onPressed: () async {
+              final snapshot =
+              await firestore.collection('notifications').get();
+
+              for (var doc in snapshot.docs) {
+                await doc.reference.delete();
+              }
+            },
           )
         ],
       ),
-      body: ValueListenableBuilder(
-        valueListenable: notificationBox.listenable(),
-        builder: (context, Box box, _) {
-          final notifications =
-          box.values.toList().reversed.toList();
 
-          if (notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_off_outlined,
-                      size: 80, color: Colors.grey.shade300),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Your inbox is empty",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: firestore
+            .collection('notifications')
+            .orderBy('timestamp', descending: true)
+            .snapshots(),
+
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+
+          if (docs.isEmpty) {
+            return const Center(
+              child: Text("Your inbox is empty"),
             );
           }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: notifications.length,
+            itemCount: docs.length,
             itemBuilder: (context, index) {
-              final item = notifications[index];
+              final data = docs[index];
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
                 ),
                 child: ExpansionTile(
                   leading: CircleAvatar(
@@ -100,51 +83,34 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         color: Colors.blue.shade800),
                   ),
                   title: Text(
-                    item['title'],
+                    data['title'] ?? '',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
-                    item['body'],
+                    data['body'] ?? '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  // DELETE BUTTON
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline,
-                        color: Colors.redAccent),
+                    icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      final key = box.keyAt(index);
-                      box.delete(key);
+                      data.reference.delete();
                     },
                   ),
 
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Divider(),
-                          const Text("Full Details:",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 5),
-                          Text(item['body']),
+                          Text(data['body'] ?? ''),
                           const SizedBox(height: 10),
-                          const Text("Meta Data:",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 12)),
                           Text(
-                            item['data'].toString(),
-                            style: const TextStyle(
-                                fontSize: 11, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            "Received: ${item['timestamp'].toString().substring(0, 16)}",
-                            style: const TextStyle(
-                                fontSize: 10,
-                                fontStyle: FontStyle.italic),
+                            "Meta: ${data['data'].toString()}",
+                            style: const TextStyle(fontSize: 12),
                           ),
                         ],
                       ),
