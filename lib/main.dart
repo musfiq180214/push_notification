@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:alarm/alarm.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -24,7 +25,7 @@ RemoteMessage? initialMessage;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await Alarm.init();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
