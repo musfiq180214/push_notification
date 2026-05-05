@@ -61,7 +61,7 @@ class FirebaseApi {
     // ✅ Foreground
     FirebaseMessaging.onMessage.listen((message) async {
       // _showTopMessage(message);
-      _showAwesomeNotification(message);
+      showAwesomeNotification(message);
       await saveToFirestore(message);
 
       final now = DateTime.now();
@@ -109,15 +109,29 @@ class FirebaseApi {
     });
   }
 
-  void _showAwesomeNotification(RemoteMessage message) {
-    AwesomeNotifications().createNotification(
+  Future<void> showAwesomeNotification(RemoteMessage message) async {
+    await AwesomeNotifications().createNotification(
       content: NotificationContent(
         id: message.messageId.hashCode,
         channelKey: 'basic_channel',
-        title: message.notification?.title ?? message.data['title'] ?? "No Title",
-        body: message.notification?.body ?? message.data['body'] ?? "No Body",
+        title: message.notification?.title ?? message.data['title'] ?? "Alarm!",
+        body: message.notification?.body ?? message.data['body'] ?? "You have a new alert",
+        fullScreenIntent: true, // This is the key
+        wakeUpScreen: true,
+        criticalAlert: true,
+        category: NotificationCategory.Call,
+        notificationLayout: NotificationLayout.Default,
+        customSound: 'asset://assets/alarm.mp3',
         payload: Map<String, String>.from(message.data),
       ),
+      actionButtons: [
+        NotificationActionButton(
+          key: 'ACCEPT',
+          label: 'Open Alarm',
+          actionType: ActionType.Default,
+          color: Colors.green,
+        ),
+      ],
     );
   }
 

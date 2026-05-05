@@ -80,6 +80,23 @@ class _AlarmScreenState extends State<AlarmScreen> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
+
+              ElevatedButton(
+                onPressed: () {
+                  _audioPlayer.stop();
+                  Navigator.pushReplacementNamed(context, '/notification_screen');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                child: const Text(
+                  "VIEW NOTIFICATION",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
             ],
           ),
         ),

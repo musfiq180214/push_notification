@@ -20,12 +20,23 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   // 🔥 Reuse same logic
   await FirebaseApi().saveToFirestore(message);
+  await FirebaseApi().showAwesomeNotification(message);
 }
 
 class NotificationController {
   @pragma("vm:entry-point")
+  static Future<void> onNotificationCreatedMethod(ReceivedNotification receivedNotification) async {
+    // This triggers the alarm screen immediately when the notification is received
+    navigatorKey.currentState?.pushNamedAndRemoveUntil(
+      '/alarm_screen',
+          (route) => route.isFirst,
+    );
+  }
+
+
+  @pragma("vm:entry-point")
   static Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
-    // Navigate to notification screen when notification is clicked
+    // If the user clicks the notification itself
     navigatorKey.currentState?.pushNamed('/notification_screen');
   }
 }
@@ -50,18 +61,36 @@ Future<void> main() async {
         channelDescription: 'Notification channel for basic tests',
         defaultColor: const Color(0xFF9D50BB),
         ledColor: Colors.white,
-        importance: NotificationImportance.High,
+        importance: NotificationImportance.Max,
+        criticalAlerts: true,
+        playSound: true,
+        soundSource: 'resource://raw/alarm',
       )
     ],
   );
 
-  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
-    if (!isAllowed) {
-      AwesomeNotifications().requestPermissionToSendNotifications();
-    }
-  });
+  List<NotificationPermission> requestedPermissions = [
+    NotificationPermission.FullScreenIntent,
+    NotificationPermission.Alert,
+    NotificationPermission.CriticalAlert,
+  ];
+
+  List<NotificationPermission> permissionsAllowed = await AwesomeNotifications().checkPermissionList(
+      channelKey: 'basic_channel',
+      permissions: requestedPermissions
+  );
+
+  if (permissionsAllowed.length < requestedPermissions.length) {
+    // This will take the user to the settings page to enable it
+    await AwesomeNotifications().requestPermissionToSendNotifications(
+      channelKey: 'basic_channel',
+      permissions: requestedPermissions,
+    );
+  }
+
 
   AwesomeNotifications().setListeners(
+    onNotificationCreatedMethod: NotificationController.onNotificationCreatedMethod,
     onActionReceivedMethod: NotificationController.onActionReceivedMethod,
   );
 
