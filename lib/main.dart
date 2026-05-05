@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -19,6 +20,14 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   // 🔥 Reuse same logic
   await FirebaseApi().saveToFirestore(message);
+}
+
+class NotificationController {
+  @pragma("vm:entry-point")
+  static Future<void> onActionReceivedMethod(ReceivedAction receivedAction) async {
+    // Navigate to notification screen when notification is clicked
+    navigatorKey.currentState?.pushNamed('/notification_screen');
+  }
 }
 
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -31,6 +40,32 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  AwesomeNotifications().initialize(
+    null, // Default icon
+    [
+      NotificationChannel(
+        channelKey: 'basic_channel',
+        channelName: 'Basic notifications',
+        channelDescription: 'Notification channel for basic tests',
+        defaultColor: const Color(0xFF9D50BB),
+        ledColor: Colors.white,
+        importance: NotificationImportance.High,
+      )
+    ],
+  );
+
+  AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
+    if (!isAllowed) {
+      AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+  });
+
+  AwesomeNotifications().setListeners(
+    onActionReceivedMethod: NotificationController.onActionReceivedMethod,
+  );
+
+
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 

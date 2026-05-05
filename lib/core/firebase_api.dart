@@ -1,4 +1,5 @@
 import 'package:alarm/alarm.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart' hide NotificationSettings;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -59,7 +60,8 @@ class FirebaseApi {
     // ✅ Foreground
     // ✅ Foreground
     FirebaseMessaging.onMessage.listen((message) async {
-      _showTopMessage(message);
+      // _showTopMessage(message);
+      _showAwesomeNotification(message);
       await saveToFirestore(message);
 
       final now = DateTime.now();
@@ -105,6 +107,18 @@ class FirebaseApi {
       // 🔥 THIS IS WHAT YOU ARE MISSING
       navigatorKey.currentState?.pushNamed('/notification_screen');
     });
+  }
+
+  void _showAwesomeNotification(RemoteMessage message) {
+    AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: message.messageId.hashCode,
+        channelKey: 'basic_channel',
+        title: message.notification?.title ?? message.data['title'] ?? "No Title",
+        body: message.notification?.body ?? message.data['body'] ?? "No Body",
+        payload: Map<String, String>.from(message.data),
+      ),
+    );
   }
 
   void _showTopMessage(RemoteMessage message) {
