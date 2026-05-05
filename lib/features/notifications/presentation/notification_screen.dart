@@ -77,28 +77,43 @@ class NotificationScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final data = docs[index];
 
+              // Inside ListView.builder's itemBuilder
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ExpansionTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue.shade50,
-                    child: Icon(Icons.notifications,
-                        color: Colors.blue.shade800),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  title: Text(
-                    data['title'] ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    data['body'] ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
+                  child: ExpansionTile(
+                    // Add this callback to update 'isRead' in Firestore
+                    onExpansionChanged: (isExpanded) {
+                      if (isExpanded && data['isRead'] == false) {
+                        data.reference.update({'isRead': true});
+                      }
+                    },
+                    leading: CircleAvatar(
+                      // Optional: Change color based on read status
+                      backgroundColor: data['isRead'] == true
+                          ? Colors.grey.shade200
+                          : Colors.blue.shade50,
+                      child: Icon(Icons.notifications,
+                          color: data['isRead'] == true
+                              ? Colors.grey.shade600
+                              : Colors.blue.shade800),
+                    ),
+                    title: Text(
+                      data['title'] ?? '',
+                      style: TextStyle(
+                        fontWeight: data['isRead'] == true
+                            ? FontWeight.normal
+                            : FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Text(
+                      data['body'] ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
