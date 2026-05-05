@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:push_notification/core/firebase_api.dart';
+import 'package:push_notification/features/notifications/presentation/alarm_file.dart';
 import 'package:push_notification/features/notifications/presentation/notification_screen.dart';
 import 'package:push_notification/firebase_options.dart';
+import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/registration_screen.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:alarm/alarm.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -23,9 +25,9 @@ final navigatorKey = GlobalKey<NavigatorState>();
 
 RemoteMessage? initialMessage;
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Alarm.init();
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -76,9 +78,26 @@ class _MyAppState extends State<MyApp> {
       title: 'Push Notification',
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      home: const HomeScreen(),
+      // REMOVE home: const HomeScreen(), <--- Remove this line
+
       routes: {
+        '/': (context) => StreamBuilder<User?>(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, snapshot) {
+            // Show a loader while checking auth state
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            // If user is logged in, go to Home, otherwise go to Login
+            if (snapshot.hasData) return const HomeScreen();
+            return LoginScreen();
+          },
+        ),
+        '/login': (context) => LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) => const HomeScreen(),
         '/notification_screen': (context) => const NotificationScreen(),
+        '/alarm_screen': (context) => const AlarmScreen()
       },
     );
   }
@@ -122,4 +141,9 @@ and if clicked Notification Screen will be opened even if the app is closed
 We are saving the notifications in Hive and shown in Notification Screen
 
 We have setup to handle three situation notification: foreground, background and terminated
+ */
+
+/*
+musfiq677@gmail.com
+11111111
  */

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../home/presentation/home_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -9,6 +10,10 @@ class NotificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firestore = FirebaseFirestore.instance;
+    // Inside build method
+    final userID = FirebaseAuth.instance.currentUser?.uid;
+
+// In StreamBuilder stream:
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -46,10 +51,12 @@ class NotificationScreen extends StatelessWidget {
       ),
 
       body: StreamBuilder<QuerySnapshot>(
-        stream: firestore
-            .collection('notifications')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
+
+      stream: firestore
+      .collection('notifications')
+          .where('userID', isEqualTo: userID) // Filter by userID
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
 
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

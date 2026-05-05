@@ -7,6 +7,7 @@ import '../features/notifications/presentation/notification_screen.dart';
 import '../main.dart';
 import '../../../core/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FirebaseApi {
   final _firebaseMessaging = FirebaseMessaging.instance;
@@ -23,24 +24,26 @@ class FirebaseApi {
 
   }
 
-  // 🔥 COMMON SAVE FUNCTION (USED EVERYWHERE)
+
+
   Future<void> saveToFirestore(RemoteMessage message) async {
     final firestore = FirebaseFirestore.instance;
+    final user = FirebaseAuth.instance.currentUser;
+    final userID = user?.uid ?? "unknown"; // Identify which user this belongs to
 
     final messageId = message.messageId;
 
-    // ✅ Prevent duplicate using messageId
+    // Prevent duplicate for this specific user
     final existing = await firestore
         .collection('notifications')
         .where('messageId', isEqualTo: messageId)
+        .where('userID', isEqualTo: userID)
         .get();
 
-    if (existing.docs.isNotEmpty) {
-      print("⚠️ Duplicate skipped");
-      return;
-    }
+    if (existing.docs.isNotEmpty) return;
 
     final newNotification = {
+      "userID": userID, // Save the user's ID
       "messageId": messageId,
       "title": message.notification?.title ?? message.data['title'] ?? "No Title",
       "body": message.notification?.body ?? message.data['body'] ?? "No Body",
