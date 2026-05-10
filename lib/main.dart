@@ -185,12 +185,14 @@ IN Authorization: Bearer Token: input the gcloud access token
 In Body give this json:
 {
   "message": {
-    "token": fcm token found in terminal,
-    "notification": {
-      "title": "Postman Test 100",
-      "body": "This was sent via the REST API!"
+    "token": "fcm_token",
+    "android": {
+      "priority": "high"
     },
     "data": {
+      "notification_id": "0",
+      "title": "New Order Alert 1000",
+      "body": "You have a new delivery request",
       "click_action": "FLUTTER_NOTIFICATION_CLICK",
       "status": "delivered",
       "screen": "notification_screen"
@@ -198,7 +200,7 @@ In Body give this json:
   }
 }
 
-Notification will be sent to this app
+Notification will be sent to this app and continuously shown as a call
 
 and if clicked Notification Screen will be opened even if the app is closed
 
